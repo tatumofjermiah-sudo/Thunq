@@ -1,0 +1,101 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow, rgba(74,74,106,0.2)) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.person {
+  display: block;
+  overflow: visible;
+  transition: filter 0.5s ease;
+}
+
+/* Breathing animation during fast */
+@keyframes breathe {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  50%       { transform: scaleY(1.025) scaleX(0.985); }
+}
+.breathe {
+  transform-origin: center bottom;
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Glow pulse on wrapper when fasting */
+@keyframes glowPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.85; transform: scale(1.01); }
+}
+.glowPulse::before {
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+/* Burst on cycle complete */
+@keyframes glowBurst {
+  0%   { opacity: 0; transform: scale(0.8); }
+  20%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.glowBurst {
+  animation: glowBurst 0.5s ease-out forwards;
+}
+
+/* Arms at rest */
+.armRest { transform-origin: 24px 100px; }
+.armRestR { transform-origin: 96px 100px; }
+
+/* Arms in meditation */
+@keyframes meditateL {
+  0%, 100% { transform: rotate(-10deg) translateY(0); }
+  50%       { transform: rotate(-10deg) translateY(-3px); }
+}
+@keyframes meditateR {
+  0%, 100% { transform: rotate(10deg) translateY(0); }
+  50%       { transform: rotate(10deg) translateY(-3px); }
+}
+.armMeditate {
+  transform-origin: 24px 100px;
+  animation: meditateL 4s ease-in-out infinite;
+}
+.armMeditateR {
+  transform-origin: 96px 100px;
+  animation: meditateR 4s ease-in-out infinite;
+}
+
+/* Arms raised on complete */
+@keyframes raiseL {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-45deg); }
+}
+@keyframes raiseR {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(45deg); }
+}
+.armRaise {
+  transform-origin: 24px 100px;
+  animation: raiseL 0.4s ease-out forwards;
+}
+.armRaiseR {
+  transform-origin: 96px 100px;
+  animation: raiseR 0.4s ease-out forwards;
+}
+
+/* Star burst */
+@keyframes starBurst {
+  0%   { opacity: 0; transform: scale(0); }
+  60%  { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.starBurst {
+  transform-origin: 60px 32px;
+  animation: starBurst 0.5s ease-out forwards;
+}
