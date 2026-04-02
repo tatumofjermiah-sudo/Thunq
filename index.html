@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interactive 3D Cranial Nerve Brain Model</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a14;
+    color: #e0e8ff;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #canvas-container {
+    flex: 1;
+    position: relative;
+  }
+
+  canvas { display: block; }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(10,10,30,0.78);
+    border: 1px solid rgba(120,140,255,0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.8;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+  }
+  #hud span { color: #8899ff; }
+
+  /* Detail panel */
+  #detail-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,10,30,0.88);
+    border: 1px solid rgba(180,160,255,0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    max-width: 480px;
+    width: 90%;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #detail-panel.visible { opacity: 1; pointer-events: auto; }
+  #detail-panel h2 { font-size: 15px; margin-bottom: 6px; }
+  #detail-panel p  { font-size: 12px; line-height: 1.6; color: #b0c0ff; }
+  #detail-close {
+    position: absolute;
+    top: 8px; right: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #8899ff;
+    background: none;
+    border: none;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 190px;
+    background: rgba(8,8,22,0.95);
+    border-left: 1px solid rgba(100,120,255,0.18);
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px;
+    overflow-y: auto;
+    gap: 4px;
+  }
+  #sidebar h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #5566aa;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .nerve-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    text-align: left;
+    color: #c0ceff;
+    font-size: 11.5px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .nerve-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(180,160,255,0.4); }
+  .nerve-btn.active { background: rgba(120,100,255,0.18); border-color: rgba(180,160,255,0.6); color: #fff; }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  #auto-rot-btn {
+    margin-top: 12px;
+    background: rgba(80,60,200,0.25);
+    border: 1px solid rgba(120,100,255,0.4);
+    border-radius: 8px;
+    padding: 9px 10px;
+    cursor: pointer;
+    color: #aabbff;
+    font-size: 12px;
+    text-align: center;
+    transition: background 0.2s;
+  }
+  #auto-rot-btn:hover { background: rgba(80,60,200,0.45); }
+  #auto-rot-btn.on { background: rgba(80,60,200,0.55); color: #fff; border-color: rgba(160,140,255,0.7); }
+
+  /* Legend */
+  #legend {
+    margin-top: auto;
+    padding-top: 14px;
+    font-size: 11px;
+    color: #6677aa;
+  }
+  .legend-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div id="canvas-container">
+  <div id="hud">
+    <span>Drag</span> to rotate &nbsp;|&nbsp; <span>Scroll</span> to zoom<br>
+    <span>Click</span> a nerve node for details
+  </div>
+  <div id="detail-panel">
+    <button id="detail-close">✕</button>
+    <h2 id="dp-title"></h2>
+    <p  id="dp-body"></p>
+  </div>
+</div>
+
+<div id="sidebar">
+  <h3>Cranial Nerves</h3>
+  <!-- buttons injected by JS -->
+  <button id="auto-rot-btn">⟳ Auto Rotate</button>
+  <div id="legend">
+    <div class="legend-row"><div class="legend-dot" style="background:#44ff88;box-shadow:0 0 5px #44ff88"></div> Sensory</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#ff6633;box-shadow:0 0 5px #ff6633"></div> Motor</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#bb66ff;box-shadow:0 0 5px #bb66ff"></div> Both</div>
+  </div>
+</div>
+
+<!-- Three.js r148 via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.148.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  Cranial nerve data
+// ─────────────────────────────────────────────────────────────
+const NERVES = [
+  { num:1,  name:'CN I – Olfactory',        type:'sensory', func:'Smell (olfaction). Sensory fibres pass from nasal epithelium through the cribriform plate to the olfactory bulb.',
+    pos:[ 0.0, 2.8, 2.0], color:'#44ff88' },
+  { num:2,  name:'CN II – Optic',           type:'sensory', func:'Vision. Carries visual information from retinal ganglion cells to the lateral geniculate nucleus and superior colliculus.',
+    pos:[ 0.0, 2.2, 2.5], color:'#44ff88' },
+  { num:3,  name:'CN III – Oculomotor',     type:'motor',   func:'Moves the eye (superior, inferior, medial rectus; inferior oblique), elevates the eyelid, constricts the pupil, and accommodates the lens.',
+    pos:[ 0.45, 1.0, 1.6], color:'#ff6633' },
+  { num:4,  name:'CN IV – Trochlear',       type:'motor',   func:'Innervates the superior oblique muscle, which depresses and intorts the eye.',
+    pos:[ 0.5, 0.7, 1.4], color:'#ff6633' },
+  { num:5,  name:'CN V – Trigeminal',       type:'both',    func:'Largest cranial nerve. Sensory to face, scalp, sinuses, teeth. Motor to muscles of mastication.',
+    pos:[ 0.9, 0.4, 1.0], color:'#bb66ff' },
+  { num:6,  name:'CN VI – Abducens',        type:'motor',   func:'Innervates the lateral rectus muscle, abducting (moving laterally) the eye.',
+    pos:[ 0.55,-0.1, 1.4], color:'#ff6633' },
+  { num:7,  name:'CN VII – Facial',         type:'both',    func:'Motor to muscles of facial expression. Sensory: taste from anterior 2/3 tongue. Parasympathetic to lacrimal and salivary glands.',
+    pos:[ 0.85,-0.3, 1.0], color:'#bb66ff' },
+  { num:8,  name:'CN VIII – Vestibulocochlear', type:'sensory', func:'Hearing (cochlear division) and balance/equilibrium (vestibular division). Arises from the inner ear.',
+    pos:[ 1.0,-0.5, 0.8], color:'#44ff88' },
+  { num:9,  name:'CN IX – Glossopharyngeal', type:'both',   func:'Taste from posterior 1/3 tongue, sensation from pharynx/tonsil. Motor to stylopharyngeus. Parasympathetic to parotid gland.',
+    pos:[ 0.75,-0.9, 0.6], color:'#bb66ff' },
+  { num:10, name:'CN X – Vagus',            type:'both',    func:'Widest distribution: parasympathetic to thoracic and abdominal viscera, motor to pharynx and larynx, sensory from larynx, oesophagus, heart, lungs, gut.',
+    pos:[ 0.65,-1.2, 0.4], color:'#bb66ff' },
+  { num:11, name:'CN XI – Accessory',       type:'motor',   func:'Innervates sternocleidomastoid (head rotation) and trapezius (shoulder shrug).',
+    pos:[ 0.55,-1.6, 0.2], color:'#ff6633' },
+  { num:12, name:'CN XII – Hypoglossal',    type:'motor',   func:'Innervates all intrinsic and most extrinsic tongue muscles, controlling tongue movement for speech, chewing, and swallowing.',
+    pos:[ 0.4,-1.8, 0.5], color:'#ff6633' },
+];
+
+// ─────────────────────────────────────────────────────────────
+//  Scene setup
+// ─────────────────────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const W = () => container.clientWidth;
+const H = () => container.clientHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W(), H());
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080814);
+scene.fog = new THREE.FogExp2(0x080814, 0.06);
+
+const camera = new THREE.PerspectiveCamera(45, W() / H(), 0.1, 100);
+camera.position.set(0, 0, 8);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 3;
+controls.maxDistance = 18;
+
+// ─────────────────────────────────────────────────────────────
+//  Lights
+// ─────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x334488, 0.6));
+
+const dirLight = new THREE.DirectionalLight(0x8899ff, 1.2);
+dirLight.position.set(5, 8, 5);
+scene.add(dirLight);
+
+const rimLight = new THREE.DirectionalLight(0x442266, 0.8);
+rimLight.position.set(-5, -3, -5);
+scene.add(rimLight);
+
+const pointA = new THREE.PointLight(0x6688ff, 1.5, 12);
+pointA.position.set(0, 3, 3);
+scene.add(pointA);
+
+// ─────────────────────────────────────────────────────────────
+//  Brain geometry
+// ─────────────────────────────────────────────────────────────
+function buildBrain() {
+  const group = new THREE.Group();
+
+  // Cerebral hemispheres (two overlapping spheres, squashed)
+  const hemiMat = new THREE.MeshPhongMaterial({
+    color: 0xc8a0b8,
+    specular: 0x553355,
+    shininess: 30,
+    transparent: true,
+    opacity: 0.78,
+  });
+
+  const leftHemi = new THREE.Mesh(
+    new THREE.SphereGeometry(1.45, 48, 32),
+    hemiMat.clone()
+  );
+  leftHemi.scale.set(1, 0.85, 1.15);
+  leftHemi.position.set(-0.42, 1.0, 0);
+  group.add(leftHemi);
+
+  const rightHemi = new THREE.Mesh(
+    new THREE.SphereGeometry(1.45, 48, 32),
+    hemiMat.clone()
+  );
+  rightHemi.scale.set(1, 0.85, 1.15);
+  rightHemi.position.set(0.42, 1.0, 0);
+  group.add(rightHemi);
+
+  // Cerebellum
+  const cerebellumMat = new THREE.MeshPhongMaterial({
+    color: 0xa08898,
+    specular: 0x442244,
+    shininess: 20,
+    transparent: true,
+    opacity: 0.82,
+  });
+  const cerebellum = new THREE.Mesh(
+    new THREE.SphereGeometry(0.75, 32, 24),
+    cerebellumMat
+  );
+  cerebellum.scale.set(1.4, 0.75, 1.0);
+  cerebellum.position.set(0, -0.3, -0.9);
+  group.add(cerebellum);
+
+  // Brainstem (tapered cylinder)
+  const stemMat = new THREE.MeshPhongMaterial({ color: 0xb09090, specular: 0x331122, shininess: 25 });
+  const stemGeo = new THREE.CylinderGeometry(0.28, 0.22, 3.0, 24);
+  const stem = new THREE.Mesh(stemGeo, stemMat);
+  stem.position.set(0, -1.5, 0.35);
+  stem.rotation.x = 0.15;
+  group.add(stem);
+
+  // Gyri-like ridges (torus rings on surface)
+  const ridgeMat = new THREE.MeshPhongMaterial({ color: 0xd0a8c0, specular: 0x441133, shininess: 15, transparent: true, opacity: 0.55 });
+  const ridgePositions = [
+    { pos:[-0.42,1.3,0.6], rot:[0.5,0,0.3], rx:1.0, ry:0.55, rz:1.0 },
+    { pos:[-0.42,1.0,-0.5], rot:[-0.4,0,-0.2], rx:0.9, ry:0.5, rz:0.9 },
+    { pos:[ 0.42,1.3,0.6], rot:[0.5,0,-0.3], rx:1.0, ry:0.55, rz:1.0 },
+    { pos:[ 0.42,1.0,-0.5], rot:[-0.4,0, 0.2], rx:0.9, ry:0.5, rz:0.9 },
+    { pos:[-0.1,1.55,0.0], rot:[0.0,0,0.8], rx:1.0, ry:0.3, rz:0.7 },
+    { pos:[ 0.1,1.55,0.0], rot:[0.0,0,-0.8], rx:1.0, ry:0.3, rz:0.7 },
+  ];
+  ridgePositions.forEach(r => {
+    const ridge = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 8, 32), ridgeMat.clone());
+    ridge.position.set(...r.pos);
+    ridge.rotation.set(...r.rot);
+    ridge.scale.set(r.rx, r.ry, r.rz);
+    group.add(ridge);
+  });
+
+  // Corpus callosum hint (flattened torus between hemispheres)
+  const ccMat = new THREE.MeshPhongMaterial({ color: 0xe0b0d0, transparent: true, opacity: 0.35 });
+  const cc = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 8, 24), ccMat);
+  cc.scale.set(1.0, 0.2, 1.0);
+  cc.position.set(0, 0.85, 0.1);
+  cc.rotation.x = Math.PI / 2;
+  group.add(cc);
+
+  return group;
+}
+
+const brainGroup = buildBrain();
+scene.add(brainGroup);
+
+// ─────────────────────────────────────────────────────────────
+//  Nerve nodes (bilateral)
+// ─────────────────────────────────────────────────────────────
+const nodeObjects = []; // { mesh, glow, nerve, side }
+
+function hexToColor(hex) {
+  return new THREE.Color(hex);
+}
+
+function buildNerveNode(nerve, mirror) {
+  const col = hexToColor(nerve.color);
+  const x = mirror ? -nerve.pos[0] : nerve.pos[0];
+  const pos = new THREE.Vector3(x, nerve.pos[1], nerve.pos[2]);
+
+  // Core sphere
+  const coreMat = new THREE.MeshPhongMaterial({
+    color: col,
+    emissive: col,
+    emissiveIntensity: 0.5,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.10, 20, 16), coreMat);
+  core.position.copy(pos);
+
+  // Outer glow shell
+  const glowMat = new THREE.MeshPhongMaterial({
+    color: col,
+    emissive: col,
+    emissiveIntensity: 0.35,
+    transparent: true,
+    opacity: 0.18,
+    side: THREE.BackSide,
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.19, 20, 16), glowMat);
+  glow.position.copy(pos);
+
+  scene.add(core);
+  scene.add(glow);
+
+  // Line from node to brainstem surface
+  const stemPos = new THREE.Vector3(mirror ? -0.14 : 0.14, nerve.pos[1] * 0.45 - 0.6, 0.35);
+  const lineMat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.35 });
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([pos, stemPos]);
+  const line = new THREE.Line(lineGeo, lineMat);
+  scene.add(line);
+
+  const obj = { mesh: core, glow, lineMat, coreMat, glowMat, nerve, pos: pos.clone() };
+  nodeObjects.push(obj);
+  return obj;
+}
+
+NERVES.forEach(nerve => {
+  buildNerveNode(nerve, false); // right side
+  buildNerveNode(nerve, true);  // left side (mirrored)
+});
+
+// ─────────────────────────────────────────────────────────────
+//  Sidebar buttons
+// ─────────────────────────────────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+const autoRotBtn = document.getElementById('auto-rot-btn');
+
+NERVES.forEach(nerve => {
+  const btn = document.createElement('button');
+  btn.className = 'nerve-btn';
+  btn.dataset.num = nerve.num;
+  btn.innerHTML = `<span class="dot" style="background:${nerve.color};color:${nerve.color}"></span>${nerve.name}`;
+  btn.addEventListener('click', () => selectNerve(nerve.num));
+  sidebar.insertBefore(btn, autoRotBtn);
+});
+
+// ─────────────────────────────────────────────────────────────
+//  Selection logic
+// ─────────────────────────────────────────────────────────────
+let selectedNum = null;
+
+function deselectAll() {
+  nodeObjects.forEach(o => {
+    o.coreMat.emissiveIntensity = 0.5;
+    o.coreMat.opacity = 0.9;
+    o.glowMat.opacity = 0.18;
+    o.lineMat.opacity = 0.35;
+    o.mesh.scale.setScalar(1);
+    o.glow.scale.setScalar(1);
+  });
+  document.querySelectorAll('.nerve-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('detail-panel').classList.remove('visible');
+  selectedNum = null;
+}
+
+function selectNerve(num) {
+  if (selectedNum === num) { deselectAll(); return; }
+  deselectAll();
+  selectedNum = num;
+
+  const nerve = NERVES.find(n => n.num === num);
+
+  nodeObjects.filter(o => o.nerve.num === num).forEach(o => {
+    o.coreMat.emissiveIntensity = 1.2;
+    o.coreMat.opacity = 1.0;
+    o.glowMat.opacity = 0.55;
+    o.lineMat.opacity = 0.9;
+    o.mesh.scale.setScalar(1.6);
+    o.glow.scale.setScalar(1.6);
+  });
+
+  // Dim other nodes
+  nodeObjects.filter(o => o.nerve.num !== num).forEach(o => {
+    o.coreMat.emissiveIntensity = 0.1;
+    o.coreMat.opacity = 0.35;
+    o.glowMat.opacity = 0.04;
+    o.lineMat.opacity = 0.08;
+  });
+
+  const btn = document.querySelector(`.nerve-btn[data-num="${num}"]`);
+  if (btn) btn.classList.add('active');
+
+  const typeLabel = { sensory:'Sensory', motor:'Motor', both:'Sensory & Motor' }[nerve.type];
+  document.getElementById('dp-title').textContent = nerve.name + ` (${typeLabel})`;
+  document.getElementById('dp-body').textContent = nerve.func;
+  document.getElementById('detail-panel').classList.add('visible');
+}
+
+document.getElementById('detail-close').addEventListener('click', deselectAll);
+
+// ─────────────────────────────────────────────────────────────
+//  Raycasting – click on nerve nodes
+// ─────────────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const DRAG_THRESHOLD_PX = 4; // pixels — below this a mousedown+up counts as a click, not a drag
+
+renderer.domElement.addEventListener('mousedown', e => {
+  mouseDownPos = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('click', e => {
+  const dx = e.clientX - mouseDownPos.x;
+  const dy = e.clientY - mouseDownPos.y;
+  if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD_PX) return; // was a drag, not a click
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const meshes = nodeObjects.map(o => o.mesh);
+  const hits = raycaster.intersectObjects(meshes);
+  if (hits.length > 0) {
+    const hit = hits[0].object;
+    const obj = nodeObjects.find(o => o.mesh === hit);
+    if (obj) selectNerve(obj.nerve.num);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+//  Auto-rotate
+// ─────────────────────────────────────────────────────────────
+let autoRotate = false;
+autoRotBtn.addEventListener('click', () => {
+  autoRotate = !autoRotate;
+  controls.autoRotate = autoRotate;
+  autoRotBtn.classList.toggle('on', autoRotate);
+  autoRotBtn.textContent = autoRotate ? '⏸ Auto Rotate' : '⟳ Auto Rotate';
+});
+controls.autoRotateSpeed = 1.2;
+
+// ─────────────────────────────────────────────────────────────
+//  Glow pulse animation
+// ─────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  nodeObjects.forEach((o, i) => {
+    const phase = (i * 0.42) % (Math.PI * 2);
+    const pulse = 0.8 + 0.2 * Math.sin(t * 1.8 + phase);
+
+    if (selectedNum === null) {
+      // All idle pulse
+      o.glow.scale.setScalar(pulse);
+      o.coreMat.emissiveIntensity = 0.4 + 0.15 * Math.sin(t * 2.0 + phase);
+    } else if (o.nerve.num === selectedNum) {
+      // Selected pulse faster and larger
+      const sel = 1.5 + 0.2 * Math.sin(t * 3.0 + phase);
+      o.glow.scale.setScalar(sel);
+      o.mesh.scale.setScalar(1.5 + 0.1 * Math.sin(t * 3.0 + phase));
+      o.coreMat.emissiveIntensity = 1.0 + 0.3 * Math.sin(t * 3.0 + phase);
+    }
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ─────────────────────────────────────────────────────────────
+//  Resize
+// ─────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = W() / H();
+  camera.updateProjectionMatrix();
+  renderer.setSize(W(), H());
+});
+</script>
+</body>
+</html>
