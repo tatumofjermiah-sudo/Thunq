@@ -1,0 +1,50 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted, #6b6b8a);
+}
+
+.options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.option {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border, #1e1e3a);
+  background: transparent;
+  color: var(--muted, #6b6b8a);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text, #e8e8f0);
+}
+
+.option.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--text, #e8e8f0);
+}
+
+.option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

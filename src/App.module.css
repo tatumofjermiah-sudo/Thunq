@@ -1,0 +1,239 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #08080f);
+  color: var(--text, #e8e8f0);
+}
+
+/* ─── Header ──────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--border, #1e1e3a);
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--accent);
+}
+
+.resetTrigger {
+  background: transparent;
+  border: none;
+  color: var(--muted, #6b6b8a);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.resetTrigger:hover {
+  background: var(--surface, #111120);
+}
+
+/* ─── Main ────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 48px;
+  padding: 40px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 680px) {
+  .main {
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 28px 16px;
+  }
+}
+
+/* ─── Person section ─────────────────────────────────────── */
+.personSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+/* ─── Controls ────────────────────────────────────────────── */
+.controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-top: 12px;
+  min-width: 0;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────── */
+.primaryBtn {
+  width: 100%;
+  max-width: 260px;
+  padding: 16px 28px;
+  border: none;
+  border-radius: 100px;
+  background: var(--accent);
+  color: #08080f;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.primaryBtn:hover {
+  opacity: 0.85;
+}
+
+.primaryBtn:active {
+  transform: scale(0.97);
+}
+
+.abandonBtn {
+  background: transparent;
+  border: 1.5px solid var(--border, #1e1e3a);
+  border-radius: 100px;
+  color: var(--muted, #6b6b8a);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.abandonBtn:hover {
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+/* ─── Complete banner ─────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.completeBanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.completeEmoji {
+  font-size: 32px;
+  color: var(--accent);
+}
+
+.completeBanner p {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.footer {
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted, #6b6b8a);
+  border-top: 1px solid var(--border, #1e1e3a);
+}
+
+/* ─── Reset Modal ─────────────────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 15, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--surface, #111120);
+  border: 1px solid var(--border, #1e1e3a);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 320px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modalSub {
+  font-size: 13px;
+  color: var(--muted, #6b6b8a);
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border, #1e1e3a);
+  background: transparent;
+  color: var(--text, #e8e8f0);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancelBtn:hover {
+  background: var(--border, #1e1e3a);
+}
+
+.dangerBtn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 100px;
+  border: none;
+  background: #ff4444;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.dangerBtn:hover {
+  opacity: 0.85;
+}

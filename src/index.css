@@ -1,0 +1,31 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #08080f;
+  --surface: #111120;
+  --border: #1e1e3a;
+  --text: #e8e8f0;
+  --muted: #6b6b8a;
+  --exposure: #4a4a6a;
+  --third: #c87941;
+  --sixth: #4a9eff;
+  --ninth: #a855f7;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
